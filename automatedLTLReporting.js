@@ -44,27 +44,33 @@ function getNSEmailReport() {
   return csvFile;
 }
 
+// added a silent failure if NS CSV data has only header row here
+// might be wise to figure out a better way of error handling
 function cleanNetsuiteData() {
   const sheet = nsDataSheet;
   const data = sheet.getDataRange().getValues();
-  let values = data.slice(1);
-  let sortRange = sheet.getRange(
-    2,
-    1,
-    sheet.getLastRow(),
-    sheet.getLastColumn()
-  );
+  // Logger.log(data.length);
+  if (data.length !== 1) {
+    let values = data.slice(1);
+    let sortRange = sheet.getRange(
+      2,
+      1,
+      sheet.getLastRow(),
+      sheet.getLastColumn()
+    );
 
-  // might be a way to keep original cell value in vlookup but for now printing an error message will stopgap
-  for (let i = 0; i < values.length; i++) {
-    const vlookup = `=IFERROR(VLOOKUP(A${[
-      i + 2,
-    ]},'DC Info'!$A$2:$B,2,FALSE),"Interal ID not found in DC Info sheet")`;
-    values[i][1] = vlookup;
+    // might be a way to keep original cell value in vlookup but for now printing an error message will stopgap
+    for (let i = 0; i < values.length; i++) {
+      const vlookup = `=IFERROR(VLOOKUP(A${[
+        i + 2,
+      ]},'DC Info'!$A$2:$B,2,FALSE),"Interal ID not found in DC Info sheet")`;
+      values[i][1] = vlookup;
+    }
+
+    sheet.getRange(2, 1, values.length, values[0].length).setValues(values);
+    // sorts NS Data by Fulfillment Date
+    sortRange.sort(4);
   }
-  sheet.getRange(2, 1, values.length, values[0].length).setValues(values);
-  // sorts NS Data by Fulfillment Date
-  sortRange.sort(4);
 }
 
 function addNetsuiteCSVToSheet() {
@@ -151,6 +157,7 @@ function updateShipmentInfo() {
 
 // autofills the 6 columns of sheets formulas on the right hand side of the dataset sheet.
 // # of columns is hardcoded at the moment, if formulas are added this will need to be updated
+// currently filling more rows than I'd like - extends several rows past
 function fillRightHandFormulas() {
   const firstRow = datasetSheet.getRange(["L2:Q2"]);
   const formulaRows = datasetSheet.getRange(
@@ -174,17 +181,19 @@ function pasteValsOnlyEquiv() {
     .setValues(rngCopyValsOnly);
 }
 
-// it works! Still need to set it up on a timer, and check that the timing makes sense
-// also should double check that PRO numbers and dates are lining up correctly
+// Added
 function autoUpdateDataset() {
+  // Netsuite functions will not execute if there is no data - see cleanNSData for details
   updateNetsuiteData();
   updateOldDominionData();
   updateShipmentInfo();
+  // this fills lots of extra rows - how to slim it down some?
   fillRightHandFormulas();
   pasteValsOnlyEquiv();
 }
 
-ScriptApp.newTrigger("autoUpdateDataset")
+// autoruns script every morning at 9am
+ScriptApp.newTrigger(autoUpdateDataset)
   .timeBased()
   .atHour(9)
   .everyDays(1)
