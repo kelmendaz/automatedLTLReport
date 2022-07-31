@@ -3,7 +3,6 @@ const nsDataSheet = SpreadsheetApp.getActive().getSheetByName("NS Data");
 const datasetSheet = SpreadsheetApp.getActive().getSheetByName("Dataset");
 const dcInfoSheet = SpreadsheetApp.getActive().getSheetByName("DC Info");
 
-// how to handle reports with no data? - unlikely for OD but possible
 function getODEmailReport() {
   const gmailThread = GmailApp.search("label:odfl-ship-report", 0, 1)[0];
   const csvAttachment = gmailThread
@@ -33,8 +32,6 @@ function updateOldDominionData() {
   cleanOldDominionData();
 }
 
-// Will need to update gmail labeling once the new report comes in tomorrow 7/20 (I changed the subject line)
-// remember to use memo field to store the original due date for orders until the native NS field can be enabled
 function getNSEmailReport() {
   const gmailThread = GmailApp.search("label:ns-ltl-report ", 0, 1)[0];
   const csvAttachment = gmailThread
@@ -44,13 +41,11 @@ function getNSEmailReport() {
   return csvFile;
 }
 
-// added a silent failure if NS CSV data has only header row here
-// might be wise to figure out a better way of error handling
 function cleanNetsuiteData() {
   const sheet = nsDataSheet;
   const data = sheet.getDataRange().getValues();
   // Logger.log(data.length);
-  if (data.length !== 1) {
+  if (data.length > 1) {
     let values = data.slice(1);
     let sortRange = sheet.getRange(
       2,
@@ -83,7 +78,6 @@ function addNetsuiteCSVToSheet() {
 // might be able to clean up variable declaration some (removing filter funcs)
 // may also need to adjust where columns are located on Dataset sheet
 function updateNetsuiteData() {
-  // added this form to bundle all NS functions into one call
   addNetsuiteCSVToSheet();
   const dataSheet = datasetSheet;
   const nsData = nsDataSheet
@@ -132,10 +126,6 @@ function updateShipmentInfo() {
     const proNumber = `=IFNA(INDEX(PROnumber_OD,MATCH(C${
       i + 2
     },POnumber_OD,0)),"")`;
-    // Logger.log(formulaRange[i])
-    // use this to break the loop if it gets high enough
-    // probably will check to see if OD delivery column values are filled or not
-    // this is just to keep the loop from having to run all the way to the end every time
 
     if (formulaRange[i][0] === "") {
       formulaRange[i][0] = actualShipDate;
@@ -157,7 +147,7 @@ function updateShipmentInfo() {
 
 // autofills the 6 columns of sheets formulas on the right hand side of the dataset sheet.
 // # of columns is hardcoded at the moment, if formulas are added this will need to be updated
-// currently filling more rows than I'd like - extends several rows past
+// currently filling more rows than I'd like - extends several rows past data rows
 function fillRightHandFormulas() {
   const firstRow = datasetSheet.getRange(["L2:Q2"]);
   const formulaRows = datasetSheet.getRange(
@@ -181,19 +171,26 @@ function pasteValsOnlyEquiv() {
     .setValues(rngCopyValsOnly);
 }
 
-// Added
+function deleteTriggers() {
+  const allTriggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < allTriggers.length; i++) {
+    ScriptApp.deleteTrigger(allTriggers[i]);
+  }
+}
+
+// 7/29 added a delete triggers function
 function autoUpdateDataset() {
-  // Netsuite functions will not execute if there is no data - see cleanNSData for details
   updateNetsuiteData();
   updateOldDominionData();
   updateShipmentInfo();
   // this fills lots of extra rows - how to slim it down some?
   fillRightHandFormulas();
   pasteValsOnlyEquiv();
+  deleteTriggers();
 }
 
 // autoruns script every morning at 9am
-ScriptApp.newTrigger(autoUpdateDataset)
+ScriptApp.newTrigger("autoUpdateDataset")
   .timeBased()
   .atHour(9)
   .everyDays(1)
