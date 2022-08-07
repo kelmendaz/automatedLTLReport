@@ -171,12 +171,16 @@ function pasteValsOnlyEquiv() {
     .setValues(rngCopyValsOnly);
 }
 
-function deleteTriggers() {
+/* 
+Unsure how I need to implement this deleteTriggers - really, I haven't figured out the whole Trigger situation very well yet
+
+function deleteTriggers () {
   const allTriggers = ScriptApp.getProjectTriggers();
   for (let i = 0; i < allTriggers.length; i++) {
-    ScriptApp.deleteTrigger(allTriggers[i]);
+    ScriptApp.deleteTrigger(allTriggers[i])
   }
 }
+*/
 
 // 7/29 added a delete triggers function
 function autoUpdateDataset() {
@@ -186,13 +190,15 @@ function autoUpdateDataset() {
   // this fills lots of extra rows - how to slim it down some?
   fillRightHandFormulas();
   pasteValsOnlyEquiv();
-  deleteTriggers();
+  // deleteTriggers()
 }
 
 // autoruns script every morning at 9am
-ScriptApp.newTrigger("autoUpdateDataset")
-  .timeBased()
-  .atHour(9)
-  .everyDays(1)
-  .inTimezone("America/New_York")
-  .create();
+// disabled because I keep creating new triggers that run the script that creates new triggers that runs the script that......
+// basically, I haven't sorted out how this works exactly yet.
+// ScriptApp.newTrigger('autoUpdateDataset')
+//   .timeBased()
+//   .atHour(9)
+//   .everyDays(1)
+//   .inTimezone("America/New_York")
+//   .create();
