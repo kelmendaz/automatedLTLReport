@@ -107,7 +107,7 @@ function updateShipmentInfo() {
     .getRange(2, 1, datasetSheet.getLastRow(), 11)
     .getValues();
   const formulaRange = datasetSheet
-    .getRange(2, 8, datasetRange.length, 4)
+    .getRange(2, 8, datasetRange.length, 6)
     .getValues();
   let filledCellCount = 0;
 
@@ -126,6 +126,12 @@ function updateShipmentInfo() {
     const proNumber = `=IFNA(INDEX(PROnumber_OD,MATCH(C${
       i + 2
     },POnumber_OD,0)),"")`;
+    const palletCount = `=IFNA(INDEX(PalletCount_OD,MATCH(C${
+      i + 2
+    },POnumber_OD,0)),"")`;
+    const shippedWeight = `=IFNA(INDEX(Weight_OD,MATCH(C${
+      i + 2
+    },POnumber_OD,0)),"")`;
 
     if (formulaRange[i][0] === "") {
       formulaRange[i][0] = actualShipDate;
@@ -139,22 +145,29 @@ function updateShipmentInfo() {
     if (formulaRange[i][3] === "") {
       formulaRange[i][3] = proNumber;
     }
+    if (formulaRange[i][4] === "") {
+      formulaRange[i][4] = palletCount;
+    }
+    if (formulaRange[i][5] === "") {
+      formulaRange[i][5] = shippedWeight;
+    }
+
     if (formulaRange[i][2] != "") filledCellCount++;
-    if (filledCellCount > 30) break;
+    if (filledCellCount > 50) break;
   }
-  datasetSheet.getRange(2, 8, datasetRange.length, 4).setValues(formulaRange);
+  datasetSheet.getRange(2, 8, datasetRange.length, 6).setValues(formulaRange);
 }
 
-// autofills the 6 columns of sheets formulas on the right hand side of the dataset sheet.
+// autofills the 7 columns of sheets formulas on the right hand side of the dataset sheet.
 // # of columns is hardcoded at the moment, if formulas are added this will need to be updated
 // currently filling more rows than I'd like - extends several rows past data rows
 function fillRightHandFormulas() {
-  const firstRow = datasetSheet.getRange(["L2:Q2"]);
+  const firstRow = datasetSheet.getRange(["N2:T2"]);
   const formulaRows = datasetSheet.getRange(
     2,
-    12,
+    14,
     datasetSheet.getLastRow(),
-    6
+    7
   );
   firstRow.autoFill(formulaRows, SpreadsheetApp.AutoFillSeries.DEFAULT_SERIES);
 }
@@ -164,41 +177,19 @@ function fillRightHandFormulas() {
 // will be the last function called
 function pasteValsOnlyEquiv() {
   const rngCopyValsOnly = datasetSheet
-    .getRange(2, 1, datasetSheet.getLastRow(), 11)
+    .getRange(2, 1, datasetSheet.getLastRow(), 13)
     .getValues();
   datasetSheet
-    .getRange(2, 1, datasetSheet.getLastRow(), 11)
+    .getRange(2, 1, datasetSheet.getLastRow(), 13)
     .setValues(rngCopyValsOnly);
 }
-
-/* 
-Unsure how I need to implement this deleteTriggers - really, I haven't figured out the whole Trigger situation very well yet
-
-function deleteTriggers () {
-  const allTriggers = ScriptApp.getProjectTriggers();
-  for (let i = 0; i < allTriggers.length; i++) {
-    ScriptApp.deleteTrigger(allTriggers[i])
-  }
-}
-*/
 
 // 7/29 added a delete triggers function
 function autoUpdateDataset() {
   updateNetsuiteData();
   updateOldDominionData();
   updateShipmentInfo();
-  // this fills lots of extra rows - how to slim it down some?
+  // this fills some extra rows - how to slim it down?
   fillRightHandFormulas();
   pasteValsOnlyEquiv();
-  // deleteTriggers()
 }
-
-// autoruns script every morning at 9am
-// disabled because I keep creating new triggers that run the script that creates new triggers that runs the script that......
-// basically, I haven't sorted out how this works exactly yet.
-// ScriptApp.newTrigger('autoUpdateDataset')
-//   .timeBased()
-//   .atHour(9)
-//   .everyDays(1)
-//   .inTimezone("America/New_York")
-//   .create();
